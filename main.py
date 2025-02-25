@@ -3,59 +3,57 @@ import rospy # ros library for python
 from sensor_msgs.msg import Illuminance
 from geometry_msgs.msg import Twist
 
-illuminance =0
 
 # create a class to subscribe to sensor messages and show the data
-class SubscribeAndShowNode(object):
+class RoverIlluminanceController:
+    SPIN_THRESHOLD = 300  # threshold to trigger spinning
+    SPIN_SPEED = 1.0  # velocity for spinning
+    STOP_SPEED = 0.0  # velocity for stopping
+    
+    
     def __init__(self):
-        global illuminance
-        # subscribe to the topic ~imu from the rvr namespace
+        rospy.init_node('rover_illuminance_controller', anonymous=True)
         
-        self.illuminance_sub = rospy.Subscriber('/rvr_driver/ambient_light', Illuminance, self.callback) #self.imu_sub
+        self.illuminance = 0.0
+        self.twist = Twist()
         
+        self.illuminance_sub = rospy.Subscriber('/rvr_driver/ambient_light', Illuminance, self.callback)
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
-        self.twist = Twist()        
+        
+        print('controller node started')       
 
     # callback function to receive the data
     def callback(self, msg):
-        global illuminance
-        
         # print the data received
-        illuminance =msg.illuminance
-        print(f'illuminance: {illuminance}')
+        self.illuminance = msg.illuminance
+        print(f'Received illuminance: {self.illuminance}')
         
-        # check if value over limit
-        if illuminance >= 300:
-            self.rover_spin()
-            print('spin')
+        #check if rover should be spinning
+        self.update_rover_motion()
+            
+    def update_rover_motion(self):
+        #updates motion based on the illuminance
+        if self.illuminance >= self.SPIN_THRESHOLD:
+            self.set_rover_spin(self.SPIN_SPEED)
         else:
-            self.rover_stop_spin()
-            print('stopspin')
+            self.set_rover_spin(self.STOP_SPEED)
             
-    def rover_spin(self):
-        self.twist.angular.z = 1.0  #spin speed
-        self.cmd_vel_pub.publish(self.twist)
-
-    def rover_stop_spin(self):        
-        self.twist.angular.z = 0.0
-        self.cmd_vel_pub.publish(self.twist)
-
             
-def main():
-    try:
-        # initialize the node with rospy
-        rospy.init_node('subscribe_and_show_node', anonymous=True)
+    def set_rover_spin(self, speed):
+        #control rover spin
+        self.twist.angular.z = speed
+        self.cmd_vel_pub.publish(self.twist)
+        print('rover spinning' if speed else 'rover stopped spinning')
 
-        # create an instance of the SubscribeAndShowNode class
-        # this will subscribe to the topic and show the data
-        sub_show_node = SubscribeAndShowNode()
-
-        # spin() simply keeps python from exiting until this node is stopped
+    def run(self):
         rospy.spin()
 
-    except rospy.ROSInterruptException as e:
-        print(e)
+            
+if __name__ == '__main__':
+    try:
+        controller = RoverIlluminanceController()
+        controller.run()
+    except rospy.ROSInterruptException:
+        ("Rover Illuminance Controller Node Interrupted")
     finally:
-        print('Node has shutdown')
-
-main()
+        rospy.loginfo("Node Shutdown")
