@@ -3,13 +3,11 @@ import rospy # ros library for python
 from sensor_msgs.msg import Illuminance
 from geometry_msgs.msg import Twist
 
-
 # create a class to subscribe to sensor messages and show the data
 class RoverIlluminanceController:
-    SPIN_THRESHOLD = 300  # threshold to trigger spinning
-    SPIN_SPEED = 1.0  # velocity for spinning
-    STOP_SPEED = 0.0  # velocity for stopping
-    
+    spin_threshold = 300  # threshold to trigger spinning
+    spin_speed = 1.0  # spin speed
+    stop_speed = 0.0  # stop speed
     
     def __init__(self):
         rospy.init_node('rover_illuminance_controller', anonymous=True)
@@ -26,17 +24,17 @@ class RoverIlluminanceController:
     def callback(self, msg):
         # print the data received
         self.illuminance = msg.illuminance
-        print(f'Received illuminance: {self.illuminance}')
+        print(f'illumincance: {self.illuminance}')
         
         #check if rover should be spinning
         self.update_rover_motion()
             
     def update_rover_motion(self):
         #updates motion based on the illuminance
-        if self.illuminance >= self.SPIN_THRESHOLD:
-            self.set_rover_spin(self.SPIN_SPEED)
+        if self.illuminance >= self.spin_threshold:
+            self.set_rover_spin(self.spin_speed)
         else:
-            self.set_rover_spin(self.STOP_SPEED)
+            self.set_rover_spin(self.stop_speed)
             
             
     def set_rover_spin(self, speed):
@@ -48,7 +46,6 @@ class RoverIlluminanceController:
     def run(self):
         rospy.spin()
 
-            
 if __name__ == '__main__':
     try:
         controller = RoverIlluminanceController()
